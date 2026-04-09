@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restaurant Menu - BiteRush</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .restaurant-header {
+      position: relative;
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .restaurant-cover {
+      height: 300px;
+      width: 100%;
+      object-fit: cover;
+    }
+    
+    .restaurant-info {
+      padding: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    
+    .restaurant-info h1 {
+      margin-bottom: 0.5rem;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .menu-item {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      gap: 1rem;
+      transition: var(--transition);
+    }
+
+    .menu-item:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-3px);
+    }
+
+    .menu-item-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .menu-item-info h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .menu-item-info p {
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      flex: 1;
+    }
+
+    .menu-item-price {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .menu-item-img {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="logo">
+      <i class="fa-solid fa-burger"></i> BiteRush
+    </a>
+    <a href="cart.html" class="cart-icon">
+      <i class="fa-solid fa-cart-shopping"></i>
+      <span class="cart-badge" id="cart-count">0</span>
+    </a>
+  </nav>
+
+  <main class="container">
+    <a href="index.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Restaurants</a>
+
+    <div id="restaurant-details">
+      <!-- Injected via JS -->
+    </div>
+
+    <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Menu</h2>
+    <div class="menu-grid" id="menu-grid">
+      <!-- Injected via JS -->
+    </div>
+  </main>
+
+  <script src="scripts/data.js"></script>
+  <script src="scripts/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get ID from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const restaurantId = urlParams.get('id');
+
+      if (!restaurantId) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const restaurant = window.api.getRestaurantById(restaurantId);
+      const menu = window.api.getMenuForRestaurant(restaurantId);
+
+      if (!restaurant) {
+        document.getElementById('restaurant-details').innerHTML = '<h2>Restaurant not found</h2>';
+        return;
+      }
+
+      // Render Header
+      const headerHtml = `
+        <div class="restaurant-header">
+          <img src="${restaurant.image}" alt="${restaurant.name}" class="restaurant-cover">
+          <div class="restaurant-info">
+            <div>
+              <h1>${restaurant.name}</h1>
+              <div class="card-meta">
+                <span><i class="fa-solid fa-star" style="color: #FFC107"></i> ${restaurant.rating}</span>
+                <span><i class="fa-solid fa-clock"></i> ${restaurant.deliveryTime}</span>
+                <span>${restaurant.category}</span>
+              </div>
+            </div>
+            <span class="status ${restaurant.status}">${restaurant.status}</span>
+          </div>
+        </div>
+      `;
+      document.getElementById('restaurant-details').innerHTML = headerHtml;
+
+      // Render Menu
+      const menuGrid = document.getElementById('menu-grid');
+      
+      if (menu.length === 0) {
+        menuGrid.innerHTML = '<p>No menu items available currently.</p>';
+        return;
+      }
+
+      menu.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+        div.innerHTML = `
+          <div class="menu-item-info">
+            <h3>${item.name}</h3>
+            <p>${item.description}</p>
+            <div class="menu-item-price">$${item.price.toFixed(2)}</div>
+            <button class="btn" onclick="addToCart(${item.id})">
+              <i class="fa-solid fa-plus"></i> Add to Cart
+            </button>
+          </div>
+          <img src="${item.image}" alt="${item.name}" class="menu-item-img">
+        `;
+        menuGrid.appendChild(div);
+      });
+
+      // Global function for onclick
+      window.addToCart = (itemId) => {
+        if (restaurant.status === 'closed') {
+          window.cartManager.showToast('Sorry, this restaurant is currently closed.');
+          return;
+        }
+        const item = menu.find(i => i.id === itemId);
+        if (item) {
+          window.cartManager.addItem(item, restaurant.id, restaurant.name);
+        }
+      };
+    });
+  </script>
+</body>
+</html>

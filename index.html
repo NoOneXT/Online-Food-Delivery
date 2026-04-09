@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BiteRush - Food Delivery in Minutes</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Home specific styles */
+    .hero {
+      background: linear-gradient(135deg, #FFF3ED 0%, #FAFAFA 100%);
+      padding: 4rem 5%;
+      border-radius: 0 0 2rem 2rem;
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+    
+    .hero h1 {
+      font-size: 3rem;
+      color: var(--text-main);
+    }
+    .hero h1 span {
+      color: var(--primary);
+    }
+
+    .search-container {
+      max-width: 600px;
+      margin: 2rem auto 0;
+      display: flex;
+      background: white;
+      border-radius: 50px;
+      padding: 0.5rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+    }
+    
+    .search-container input {
+      flex: 1;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 50px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .search-container button {
+      border-radius: 50px;
+      padding: 0.8rem 2rem;
+    }
+
+    .filters {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.6rem 1.2rem;
+      border: 1px solid var(--border-color);
+      background: white;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: var(--transition);
+      color: var(--text-muted);
+    }
+
+    .filter-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="logo">
+      <i class="fa-solid fa-burger"></i> BiteRush
+    </a>
+    <a href="cart.html" class="cart-icon">
+      <i class="fa-solid fa-cart-shopping"></i>
+      <span class="cart-badge" id="cart-count">0</span>
+    </a>
+  </nav>
+
+  <header class="hero">
+    <h1>Hungry? <span>We deliver.</span></h1>
+    <p>Get food from your favorite restaurants delivered at BiteRush speed.</p>
+    
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search for restaurants or cuisines...">
+      <button class="btn" id="search-btn"><i class="fa-solid fa-search"></i> Search</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2>Popular Categories</h2>
+    <div class="filters" id="category-filters">
+      <!-- Generated via JS -->
+    </div>
+
+    <h2>Restaurants Near You</h2>
+    <div class="grid" id="restaurant-grid">
+      <!-- Generated via JS -->
+    </div>
+  </main>
+
+  <script src="scripts/data.js"></script>
+  <script src="scripts/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const restaurants = window.api.getRestaurants();
+      const categories = window.api.getCategories();
+      let activeCategory = "All";
+      let searchQuery = "";
+
+      const grid = document.getElementById('restaurant-grid');
+      const filtersContainer = document.getElementById('category-filters');
+      const searchInput = document.getElementById('search-input');
+
+      // Initialize Filters
+      categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `filter-btn ${cat === activeCategory ? 'active' : ''}`;
+        btn.textContent = cat;
+        btn.onclick = () => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeCategory = cat;
+          renderRestaurants();
+        };
+        filtersContainer.appendChild(btn);
+      });
+
+      // Search functionality
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        renderRestaurants();
+      });
+
+      function renderRestaurants() {
+        grid.innerHTML = '';
+        
+        const filtered = restaurants.filter(r => {
+          const matchCategory = activeCategory === "All" || r.category === activeCategory;
+          const matchSearch = r.name.toLowerCase().includes(searchQuery) || 
+                              r.category.toLowerCase().includes(searchQuery);
+          return matchCategory && matchSearch;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `<div class="empty-state">
+            <i class="fa-solid fa-store-slash"></i>
+            <h3>No restaurants found</h3>
+            <p>Try a different search or category.</p>
+          </div>`;
+          grid.style.display = 'block';
+          return;
+        }
+        
+        grid.style.display = 'grid';
+
+        filtered.forEach(r => {
+          const card = document.createElement('a');
+          card.href = `menu.html?id=${r.id}`;
+          card.className = 'card';
+          
+          card.innerHTML = `
+            <div class="card-img-wrapper">
+              <img src="${r.image}" alt="${r.name}">
+            </div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3>${r.name}</h3>
+                <span class="status ${r.status}">${r.status}</span>
+              </div>
+              <p>${r.category}</p>
+              <div class="card-meta">
+                <span><i class="fa-solid fa-star" style="color: #FFC107"></i> ${r.rating}</span>
+                <span><i class="fa-solid fa-clock"></i> ${r.deliveryTime}</span>
+              </div>
+            </div>
+          `;
+          
+          grid.appendChild(card);
+        });
+      }
+
+      renderRestaurants();
+    });
+  </script>
+</body>
+</html>
